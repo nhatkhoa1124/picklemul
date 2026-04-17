@@ -1,10 +1,11 @@
 #include <iostream>
+#include <SDL3/SDL.h>
+#include "chip8.h"
 
-struct chip8_ram {
-    uint8_t memmory[4096];
-};
+#define WINDOW_LENGTH = 640;
+#define WINDOW_HEIGHT = 320;
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+
     return 0;
 }

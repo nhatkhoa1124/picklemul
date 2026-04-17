@@ -2,6 +2,28 @@
 #include <algorithm>
 #include <cstdint>
 #include <random>
+#include <ctime>
+
+#define FONTSET_SIZE	80
+
+constexpr unsigned char fontset[FONTSET_SIZE] = {
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80 // F
+};
 
 struct chip8 {
     uint8_t main_memory[4096] = {0};
@@ -11,10 +33,10 @@ struct chip8 {
     uint16_t index_register = 0;
     uint16_t program_counter = 0x200;
     uint8_t stack_pointer = 0;
-    uint8_t timers[2] = {0};
+    uint8_t delay_timer = 0;
+    uint8_t sound_timer = 0;
     uint8_t keypads[16] = {0};
-
-    int rand;
+    bool draw_flag = false;
 
 
     ~chip8() = default;
@@ -35,23 +57,23 @@ struct chip8 {
 };
 
 inline void chip8::init() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(0, 255);
-    rand = distr(gen);
+    std::srand(std::time(nullptr));
+    for (int i = 0; i < FONTSET_SIZE; i++) {
+        main_memory[i] = fontset[i];
+    }
 }
 
 inline void chip8::reset() {
     std::ranges::fill(main_memory, 0);
     std::ranges::fill(stack_memory, 0);
     std::ranges::fill(display_buffer, 0);
-    std::ranges::fill(general_registers, 0);
+    std::ranges::fill(registers, 0);
     std::ranges::fill(keypads, 0);
     program_counter = 0x200;
     index_register = 0;
     stack_pointer = 0;
-    timers[0] = 0;
-    timers[1] = 1;
+    delay_timer = 0;
+    sound_timer = 0;
 }
 
 inline uint16_t chip8::fetch() {
@@ -172,10 +194,28 @@ inline void chip8::decode(uint16_t opcode) {
             program_counter = nnn + registers[0];
             break;
         case 0xC000: {
-            registers[x] = nn & rand;
+            registers[x] = (std::rand() % 256) & nn;
             break;
         }
         case 0xD000:
+            registers[0xF] = 0;
+            for (size_t row = 0; row < n; row++) {
+                uint8_t current_byte = main_memory[index_register + row];
+                for (size_t col = 0; col < 8; col++) {
+                    if ((current_byte & (0x80 >> col)) != 0) {
+                        uint8_t screen_x = (registers[x] + col) % 64;
+                        uint8_t screen_y = (registers[y] + row) % 32;
+                        if (screen_x < 64 && screen_y < 32) {
+                            size_t pixel_index = screen_x + (screen_y * 64);
+                            if (display_buffer[pixel_index] == 1)
+                                registers[0xF] = 1;
+
+                            display_buffer[pixel_index] ^= 1;
+                        }
+                    }
+                }
+            }
+            draw_flag = true;
             break;
         case 0xE000:
             switch (nn) {
@@ -192,7 +232,7 @@ inline void chip8::decode(uint16_t opcode) {
         case 0xF000:
             switch (nn) {
                 case 0x07:
-                    registers[x] = timers[0];
+                    registers[x] = delay_timer;
                     break;
                 case 0x0A: {
                     bool is_pressed = false;
@@ -208,10 +248,10 @@ inline void chip8::decode(uint16_t opcode) {
                     break;
                 }
                 case 0x15:
-                    timers[0] = registers[x]; // Set delay timer
+                    delay_timer = registers[x];
                     break;
                 case 0x18:
-                    timers[1] = registers[x]; // Set sound timer
+                    sound_timer = registers[x];
                     break;
                 case 0x1E:
                     index_register += registers[x];
@@ -242,13 +282,17 @@ inline void chip8::decode(uint16_t opcode) {
 }
 
 inline void chip8::exec() {
+    uint16_t opcode = fetch();
+    decode(opcode);
 }
 
 inline void chip8::update_timers() {
+    if (delay_timer > 0) delay_timer--;
+    if (sound_timer > 0) sound_timer--;
 }
 
 inline void chip8::set_key(uint8_t key_index, bool is_pressed) {
-    if (key_index < 16 && is_pressed) {
-        keypads[key_index] = is_pressed;
+    if (key_index < 16) {
+        keypads[key_index] = is_pressed ? 1 : 0;
     }
 }

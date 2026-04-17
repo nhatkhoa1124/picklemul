@@ -75,6 +75,31 @@ int main(int argc, char *argv[]) {
             if (e.type == SDL_EVENT_QUIT) {
                 quit = true;
             }
+            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
+                bool is_pressed = (e.type == SDL_EVENT_KEY_DOWN);
+
+                switch (e.key.key) {
+                    case SDLK_1: emulator.set_key(0x1, is_pressed); break;
+                    case SDLK_2: emulator.set_key(0x2, is_pressed); break;
+                    case SDLK_3: emulator.set_key(0x3, is_pressed); break;
+                    case SDLK_4: emulator.set_key(0xC, is_pressed); break;
+
+                    case SDLK_Q: emulator.set_key(0x4, is_pressed); break;
+                    case SDLK_W: emulator.set_key(0x5, is_pressed); break;
+                    case SDLK_E: emulator.set_key(0x6, is_pressed); break;
+                    case SDLK_R: emulator.set_key(0xD, is_pressed); break;
+
+                    case SDLK_A: emulator.set_key(0x7, is_pressed); break;
+                    case SDLK_S: emulator.set_key(0x8, is_pressed); break;
+                    case SDLK_D: emulator.set_key(0x9, is_pressed); break;
+                    case SDLK_F: emulator.set_key(0xE, is_pressed); break;
+
+                    case SDLK_Z: emulator.set_key(0xA, is_pressed); break;
+                    case SDLK_X: emulator.set_key(0x0, is_pressed); break;
+                    case SDLK_C: emulator.set_key(0xB, is_pressed); break;
+                    case SDLK_V: emulator.set_key(0xF, is_pressed); break;
+                }
+            }
         }
         for (int i = 0; i < 10; i++) {
             emulator.exec();

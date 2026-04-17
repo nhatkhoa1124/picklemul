@@ -38,7 +38,6 @@ struct chip8 {
     uint8_t keypads[16] = {0};
     bool draw_flag = false;
 
-
     ~chip8() = default;
 
     void init();

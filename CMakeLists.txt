@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 
+if(WIN32)
+    set(APP_RESOURCES assets/windows_asset.rc)
+endif()
+
 FetchContent_Declare(
         SDL3
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -24,6 +28,7 @@ target_link_libraries(chip8_bridge PRIVATE ${JNI_LIBRARIES})
 add_executable(picklemul
         src/desktop/main.cpp
         src/core/chip8.h
+        ${APP_RESOURCES}
 )
 target_link_libraries(picklemul PRIVATE SDL3::SDL3-shared)
 

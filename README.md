@@ -1,37 +1,70 @@
 # PicklEmul
 
-A custom-built CHIP-8 emulator written in C++20 and SDL3. This project is a cycle-accurate software interpreter that abstractly emulates the CPU, RAM, registers, and display of a 1970s CHIP-8 virtual machine.
+CHIP-8 emulator project with a shared C++ core and two frontends:
+- Desktop: SDL3 (`src/desktop/main.cpp`)
+- Mobile app: React Native + Skia (`PicklemulMobile/`)
 
-## Features
-* **Headless Core:** The `chip8` engine is decoupled from the UI, making it highly portable.
-* **Modern Rendering:** Uses SDL3 with logical presentation scaling and nearest-neighbor texture filtering to keep the 64x32 grid perfectly sharp on modern displays.
-* **Timers:** Accurate 60Hz decay for both sound and delay timers.
+## Technical summary
 
-## Controls
-The original CHIP-8 used a 16-key hex keypad (0-F). PicklEmul maps these inputs to the left side of a standard QWERTY keyboard:
+- Core VM in `src/core/chip8.h`:
+    - 4 KB memory, 16 registers, 16-level stack, 64x32 display buffer, 16-key keypad
+    - fontset preload, fetch/decode/execute loop, timers, key input API
+    - opcode decode implemented through CHIP-8 instruction groups (`0x0***` ... `0xF***`)
+- Desktop runtime (`src/desktop/main.cpp`):
+    - SDL3 renderer with logical resolution `64x32`, nearest scaling, letterboxing
+    - CPU pacing: `1200` cycles/sec at `60` FPS (`20` cycles/frame)
+    - ROM file loading with size guard (`<= 4096 - 0x200`)
+- Android mobile runtime:
+    - Native bridge: JS -> Java module -> JNI -> shared C++ emulator (`chip8_bridge`)
+    - Synchronous React Native native module methods for init/exec/load/timers/keys/framebuffer
+    - Skia framebuffer rendering and on-screen 16-key keypad in `PicklemulMobile/App.tsx`
+    - Time-based stepping (target `1200` CPU Hz, `60` timer Hz)
 
-| CHIP-8 Key | QWERTY Key |
-| :--- | :--- |
-| **1  2  3  C** | **1  2  3  4** |
-| **4  5  6  D** | **Q  W  E  R** |
-| **7  8  9  E** | **A  S  D  F** |
-| **A  0  B  F** | **Z  X  C  V** |
+## ROMs in repository
 
-## Requirements
-* A C++20 compatible compiler (MSVC, GCC, or Clang)
-* CMake 4.1 or higher
-* Internet connection (for the initial CMake run to download SDL3)
+- Desktop assets (`assets/`): `RPS.ch8`, `snake.ch8`, `spacejam.ch8`, `spaceracer.ch8`
+- Mobile embedded ROM arrays (`PicklemulMobile/src/roms.ts`):
+    - IBM Logo
+    - Snake
+    - Space Racer
+    - Space Jam
+    - RPS
 
-## Building and Running
-1. Clone the repository.
-2. Place your CHIP-8 ROM files (e.g., `.ch8`) inside the `assets/` folder. Update the path in `filepaths.h` if necessary.
-3. Generate the build files and compile using CMake:
+## Key mapping (desktop and mobile UI)
 
-    ```bash
-    mkdir build
-    cd build
-    cmake ..
-    cmake --build .
-    ```
+| CHIP-8 | Key |
+|---|---|
+| `1 2 3 C` | `1 2 3 4` |
+| `4 5 6 D` | `Q W E R` |
+| `7 8 9 E` | `A S D F` |
+| `A 0 B F` | `Z X C V` |
 
-4. Run the executable. *(Note for Windows users: Ensure `SDL3.dll` is located in the same directory as `picklemul.exe` if CMake does not copy it automatically).*
+## Build and run
+
+### Desktop (CMake + SDL3)
+
+Requirements:
+- C++20 compiler
+- CMake `>= 4.1`
+
+Commands:
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+
+Run `picklemul` from the build output directory.
+
+### Mobile (React Native)
+
+From `PicklemulMobile/`:
+
+```bash
+npm install
+npm run android
+```
+
+`npm run ios` is available in scripts; Android native bridge implementation is present in this repository.

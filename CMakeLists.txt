@@ -10,12 +10,21 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
         GIT_TAG release-3.4.4
 )
-
 FetchContent_MakeAvailable(SDL3)
 
-add_executable(picklemul src/desktop/main.cpp
-        src/core/chip8.h)
+find_package(JNI REQUIRED)
+include_directories(${JNI_INCLUDE_DIRS})
 
+add_library(chip8_bridge SHARED
+        src/mobile/chip8_bridge.cpp
+        src/core/chip8.h
+)
+target_link_libraries(chip8_bridge PRIVATE ${JNI_LIBRARIES})
+
+add_executable(picklemul
+        src/desktop/main.cpp
+        src/core/chip8.h
+)
 target_link_libraries(picklemul PRIVATE SDL3::SDL3-shared)
 
 add_custom_command(TARGET picklemul POST_BUILD

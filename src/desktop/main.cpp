@@ -99,6 +99,7 @@ void draw(SDL_Renderer *renderer, chip8 &vm) {
 int main(int argc, char *argv[]) {
     chip8 emulator = {};
     emulator.init();
+    emulator.reset();
     std::string game_path = get_user_input();
     if (!load_rom(emulator, game_path)) {
         return -1;

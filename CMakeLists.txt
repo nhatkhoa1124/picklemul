@@ -13,7 +13,13 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(SDL3)
 
-add_executable(picklemul main.cpp
-        chip8.h)
+add_executable(picklemul src/desktop/main.cpp
+        src/core/chip8.h)
 
 target_link_libraries(picklemul PRIVATE SDL3::SDL3-shared)
+
+add_custom_command(TARGET picklemul POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:SDL3::SDL3-shared>
+        $<TARGET_FILE_DIR:picklemul>
+)
